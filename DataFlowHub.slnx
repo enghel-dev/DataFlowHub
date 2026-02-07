@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="DataFlowHub.API/DataFlowHub.API.csproj" />
+  <Project Path="DataFlowHub.Application/DataFlowHub.Application.csproj" />
+  <Project Path="DataFlowHub.Domain/DataFlowHub.Domain.csproj" />
+  <Project Path="DataFlowHub.Infrastructure/DataFlowHub.Infrastructure.csproj" />
+</Solution>

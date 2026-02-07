@@ -1,0 +1,6 @@
+@DataFlowHub.API_HostAddress = http://localhost:5150
+
+GET {{DataFlowHub.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
