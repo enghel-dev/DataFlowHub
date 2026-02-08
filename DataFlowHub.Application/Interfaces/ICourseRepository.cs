@@ -1,6 +1,6 @@
 ﻿using DataFlowHub.Domain.Entities;
 
-namespace DataFlowHub.Domain.Interfaces
+namespace DataFlowHub.Application.Interfaces
 {
     public interface ICourseRepository
     {
