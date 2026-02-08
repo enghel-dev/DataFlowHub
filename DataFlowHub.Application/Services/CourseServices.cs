@@ -1,6 +1,6 @@
 ﻿using DataFlowHub.Application.DTOs;
 using DataFlowHub.Domain.Entities;
-using DataFlowHub.Domain.Interfaces;
+using DataFlowHub.Application.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;

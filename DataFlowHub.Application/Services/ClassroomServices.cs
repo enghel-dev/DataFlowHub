@@ -1,6 +1,6 @@
 ﻿using DataFlowHub.Application.DTOs;
 using DataFlowHub.Domain.Entities;
-using DataFlowHub.Domain.Interfaces;
+using DataFlowHub.Application.Interfaces;
 
 namespace DataFlowHub.Application.Services
 {
