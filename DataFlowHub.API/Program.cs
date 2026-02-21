@@ -1,5 +1,8 @@
+using DataFlowHub.Application.Interfaces;
+using DataFlowHub.Application.Services;
 using DataFlowHub.Infrastructure;
 using DataFlowHub.Infrastructure.DataBase;
+using DataFlowHub.Infrastructure.Repository;
 using System.Data.Common;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +17,13 @@ builder.Services.AddOpenApi();
 var ConectionString = builder.Configuration.GetConnectionString("default");
 builder.Services.AddSingleton(new DBconnectionFactory(ConectionString!));
 
+//Inyeccion de dependencias
+builder.Services.AddScoped<IClassroomRepository, ClassrooomRepository>();
+builder.Services.AddScoped<ClassroomServices>();
+//
+
+
+//Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

@@ -8,7 +8,7 @@ namespace DataFlowHub.Application.Interfaces
         Task<IEnumerable<Grade>> GetByEnrollmentIdAsync(int enrollmentId);
 
         // Ingresar una nota
-        Task<int> CreateAsync(Grade grade);
+        Task CreateAsync(Grade grade);
 
         // Modificar una nota
         Task UpdateAsync(Grade grade);

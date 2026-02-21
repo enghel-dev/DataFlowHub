@@ -14,7 +14,7 @@ namespace DataFlowHub.Application.Interfaces
         Task<IEnumerable<Course>> GetByTeacherIdAsync(int teacherId);
 
         // Crear nuevo curso
-        Task<int> CreateAsync(Course course);
+        Task CreateAsync(Course course);
 
         // Editar curso
         Task UpdateAsync(Course course);

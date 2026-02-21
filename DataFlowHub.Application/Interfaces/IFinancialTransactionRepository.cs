@@ -8,6 +8,6 @@ namespace DataFlowHub.Application.Interfaces
         Task<IEnumerable<FinancialTransaction>> GetByStudentIdAsync(int studentId);
 
         // Registrar un pago o deuda
-        Task<int> CreateAsync(FinancialTransaction transaction);
+        Task CreateAsync(FinancialTransaction transaction);
     }
 }

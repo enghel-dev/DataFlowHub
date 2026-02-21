@@ -11,7 +11,7 @@ namespace DataFlowHub.Application.Interfaces
         Task<IEnumerable<Classroom>> GetByIdAsync(int id);
 
         // Crear salón
-        Task<int> CreateAsync(Classroom classroom);
+        Task CreateAsync(Classroom classroom);
 
         // Editar salón
         Task UpdateAsync(Classroom classroom);

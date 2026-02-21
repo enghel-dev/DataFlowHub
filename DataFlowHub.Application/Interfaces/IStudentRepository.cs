@@ -14,7 +14,7 @@ namespace DataFlowHub.Application.Interfaces
         Task<Student> GetByRegistrationNumberAsync(string registrationNumber);
 
         // Crear un nuevo estudiante
-        Task<int> CreateAsync(Student student);
+        Task CreateAsync(Student student);
 
         // Editar un estudiante existente
         Task UpdateAsync(Student student);

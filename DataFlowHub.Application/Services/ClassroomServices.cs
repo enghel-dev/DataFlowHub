@@ -31,7 +31,7 @@ namespace DataFlowHub.Application.Services
         //Obtener info del salón
         public async Task<IEnumerable<ClassroomDTOs>> GetById(int id)
         {
-            if (id > 0)
+            if (id < 0)
                 return Enumerable.Empty<ClassroomDTOs>();
             
             var lista = await _Repository.GetByIdAsync(id);
