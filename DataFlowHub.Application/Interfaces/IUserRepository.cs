@@ -8,7 +8,7 @@ namespace DataFlowHub.Application.Interfaces
         Task<User> GetByUsernameAsync(string username);
 
         // Crear un nuevo usuario (al registrar estudiante o profesor)
-        Task<int> CreateAsync(User user);
+        Task CreateAsync(User user);
 
         // Actualizar contraseña o rol
         Task UpdateAsync(User user);

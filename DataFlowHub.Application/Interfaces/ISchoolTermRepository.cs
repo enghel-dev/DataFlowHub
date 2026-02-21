@@ -11,7 +11,7 @@ namespace DataFlowHub.Application.Interfaces
         Task<SchoolTerm> GetActiveTermAsync();
 
         // Crear periodo
-        Task<int> CreateAsync(SchoolTerm term);
+        Task CreateAsync(SchoolTerm term);
 
         // Activar/Desactivar periodo
         Task UpdateAsync(SchoolTerm term);

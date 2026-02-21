@@ -11,7 +11,7 @@ namespace DataFlowHub.Application.Interfaces
         Task<Major> GetByIdAsync(int id);
 
         // Crear nueva carrera
-        Task<int> CreateAsync(Major major);
+        Task CreateAsync(Major major);
 
         // Editar nombre de carrera
         Task UpdateAsync(Major major);

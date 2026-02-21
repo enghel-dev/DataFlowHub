@@ -8,7 +8,7 @@ namespace DataFlowHub.Application.Interfaces
         Task<IEnumerable<Schedule>> GetByCourseIdAsync(int courseId);
 
         // Asignar un horario
-        Task<int> CreateAsync(Schedule schedule);
+        Task CreateAsync(Schedule schedule);
 
         // Modificar horario
         Task UpdateAsync(Schedule schedule);

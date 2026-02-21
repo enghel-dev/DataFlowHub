@@ -11,7 +11,7 @@ namespace DataFlowHub.Application.Interfaces
         Task<IEnumerable<Enrollment>> GetByStudentIdAsync(int studentId);
 
         // Matricular estudiante en una clase
-        Task<int> CreateAsync(Enrollment enrollment);
+        Task CreateAsync(Enrollment enrollment);
 
         // Actualizar estado (ej: Retirada, Aprobada)
         Task UpdateStatusAsync(int id, string status);

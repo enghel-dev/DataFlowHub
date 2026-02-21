@@ -14,7 +14,7 @@ namespace DataFlowHub.Application.Interfaces
         Task<Teacher> GetByEmployeeNumberAsync(string employeeNumber);
 
         // Registrar nuevo profesor
-        Task<int> CreateAsync(Teacher teacher);
+        Task CreateAsync(Teacher teacher);
 
         // Editar datos del profesor
         Task UpdateAsync(Teacher teacher);
