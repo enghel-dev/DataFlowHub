@@ -4,39 +4,21 @@ using DataFlowHub.Application.Interfaces;
 
 namespace DataFlowHub.Application.Services
 {
-    public class ClassroomServices
+    public class ClassroomService
     {
-        //Inyeccion de dependecias
-        private readonly IClassroomRepository _Repository;
+        private readonly IClassroomRepository _repository;
 
-        public ClassroomServices(IClassroomRepository repository)
+        public ClassroomService(IClassroomRepository repository)
         {
-            _Repository = repository;
+            _repository = repository;
         }
 
-        // Listar salones disponibles
-        //Task<IEnumerable<Classroom>> GetAllAsync();
-        public async Task<IEnumerable<ClassroomDTOs>> GetAll()
+        public async Task<IEnumerable<ClassroomDTOs>> GetAllAsync()
         {
-            var listar = await _Repository.GetAllAsync();
+            // El SP interno ya filtra WHERE IsActive = 1
+            var entities = await _repository.GetAllAsync();
 
-            return listar.Select(c => new ClassroomDTOs
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Location = c.Location,
-                Capacity = c.Capacity
-            });
-        }
-        //Obtener info del salón
-        public async Task<IEnumerable<ClassroomDTOs>> GetById(int id)
-        {
-            if (id < 0)
-                return Enumerable.Empty<ClassroomDTOs>();
-            
-            var lista = await _Repository.GetByIdAsync(id);
-
-            return lista.Select(c => new ClassroomDTOs
+            return entities.Select(c => new ClassroomDTOs
             {
                 Id = c.Id,
                 Name = c.Name,
@@ -45,37 +27,63 @@ namespace DataFlowHub.Application.Services
             });
         }
 
-        // Crear salón
-        public async Task Create(ClassroomDTOs classroomDTOs)
+        public async Task<ClassroomDTOs?> GetByIdAsync(int id)
         {
-            var oClassroom = new Classroom
-            {
-                Name = classroomDTOs.Name,
-                Location = classroomDTOs.Location,
-                Capacity = classroomDTOs.Capacity
-            };
+            if (id <= 0) return null;
 
-            await _Repository.CreateAsync(oClassroom);
+            // Esperamos un único resultado (o null si IsActive = 0)
+            var result = await _repository.GetByIdAsync(id);
+            var entity = result.FirstOrDefault();
+
+            if (entity == null) return null;
+
+            return new ClassroomDTOs
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                Location = entity.Location,
+                Capacity = entity.Capacity
+            };
         }
 
-        // Editar salón
-        public async Task Update(ClassroomDTOs classroomDTOs)
+        public async Task<bool> CreateAsync(ClassroomDTOs dto)
         {
-            var oClassroom = new Classroom
+            var entity = new Classroom
             {
-                Id= classroomDTOs.Id,
-                Name = classroomDTOs.Name,
-                Location = classroomDTOs.Location,
-                Capacity = classroomDTOs.Capacity
+                Name = dto.Name,
+                Location = dto.Location,
+                Capacity = dto.Capacity
             };
 
-            await _Repository.UpdateAsync(oClassroom);
+            await _repository.CreateAsync(entity);
+            return true; // Asumimos éxito si no hay excepción del SP
         }
 
-        // Eliminar salón
-        public async Task Delete(int id)
+        public async Task<bool> UpdateAsync(ClassroomDTOs dto)
         {
-            await _Repository.DeleteAsync(id);
+            // Validar que el registro existe y está activo antes de editar
+            var existing = await _repository.GetByIdAsync(dto.Id);
+            if (existing == null || !existing.Any()) return false;
+
+            var entity = new Classroom
+            {
+                Id = dto.Id,
+                Name = dto.Name,
+                Location = dto.Location,
+                Capacity = dto.Capacity
+            };
+
+            await _repository.UpdateAsync(entity);
+            return true;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            if (id <= 0) return false;
+
+            // El SP ejecutará: UPDATE Classroom SET IsActive = 0, UpdatedAt = SYSDATETIME()...
+            await _repository.DeleteAsync(id);
+            return true;
         }
     }
 }

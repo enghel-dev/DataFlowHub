@@ -1,44 +1,73 @@
 using DataFlowHub.Application.DTOs;
-using DataFlowHub.Application.Interfaces;
 using DataFlowHub.Domain.Entities;
+using DataFlowHub.Application.Interfaces;
 
 namespace DataFlowHub.Application.Services
 {
-    public class GradeServices
+    public class GradeService
     {
         private readonly IGradeRepository _repository;
 
-        public GradeServices(IGradeRepository repository)
+        public GradeService(IGradeRepository repository)
         {
             _repository = repository;
         }
 
-        public async Task<IEnumerable<GradeDTO>> GetAll()
+        public async Task<IEnumerable<GradeDTOs>> GetByEnrollmentIdAsync(int enrollmentId)
         {
-            var grades = await _repository.GetAllAsync();
+            if (enrollmentId <= 0) return Enumerable.Empty<GradeDTOs>();
 
-            return grades.Select(g => new GradeDTO
+            var grades = await _repository.GetByEnrollmentIdAsync(enrollmentId);
+            return grades.Select(g => new GradeDTOs
             {
                 Id = g.Id,
-                StudentId = g.StudentId,
-                Score = g.Score
+                Name = g.Name,
+                Value = g.Value,
+                EvaluationDate = g.EvaluationDate,
+                EnrollmentId = g.EnrollmentId
             });
         }
 
-        public async Task Create(GradeDTO dto)
+        public async Task<bool> CreateAsync(GradeDTOs dto)
         {
-            var grade = new Grade
+            // Validación: No permitir notas negativas (ajustar según escala local)
+            if (dto.Value < 0 || dto.EnrollmentId <= 0) return false;
+
+            var entity = new Grade
             {
-                StudentId = dto.StudentId,
-                Score = dto.Score
+                Name = dto.Name,
+                Value = dto.Value,
+                EvaluationDate = dto.EvaluationDate == default ? DateTime.Now : dto.EvaluationDate,
+                EnrollmentId = dto.EnrollmentId
             };
 
-            await _repository.CreateAsync(grade);
+            await _repository.CreateAsync(entity);
+            return true;
         }
 
-        public async Task Delete(int id)
+        public async Task<bool> UpdateAsync(GradeDTOs dto)
         {
+            if (dto.Id <= 0 || dto.Value < 0) return false;
+
+            // En Dapper, si el SP hace WHERE IsActive = 1, la actualización es segura
+            var entity = new Grade
+            {
+                Id = dto.Id,
+                Name = dto.Name,
+                Value = dto.Value,
+                EvaluationDate = dto.EvaluationDate,
+                EnrollmentId = dto.EnrollmentId
+            };
+
+            await _repository.UpdateAsync(entity);
+            return true;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            if (id <= 0) return false;
             await _repository.DeleteAsync(id);
+            return true;
         }
     }
 }

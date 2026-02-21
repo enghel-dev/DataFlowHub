@@ -1,28 +1,61 @@
 ﻿using DataFlowHub.Application.DTOs;
 using DataFlowHub.Domain.Entities;
 using DataFlowHub.Application.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DataFlowHub.Application.Services
 {
-    public class CourseServices
+    public class CourseService
     {
-        //Inyeccion de dependecias
-        private readonly ICourseRepository _Repository;
+        private readonly ICourseRepository _repository;
 
-        public CourseServices(ICourseRepository repository)
+        public CourseService(ICourseRepository repository)
         {
-            _Repository = repository;
+            _repository = repository;
         }
 
-        //Listar todos los cursos
-        public async Task<IEnumerable<CourseDTOs>> GetAll()
+        public async Task<IEnumerable<CourseDTOs>> GetAllAsync()
         {
-            var listar = await _Repository.GetAllAsync();
+            var courses = await _repository.GetAllAsync();
 
-            return listar.Select(c => new CourseDTOs
+            return courses.Select(c => new CourseDTOs
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                Credits = c.Credits,
+                TeacherId = c.TeacherId,
+                SchoolTermId = c.SchoolTermId
+                // Nota: Teacher y SchoolTerm DTOs se llenarían aquí si el SP devuelve JOINs
+            });
+        }
+
+        public async Task<CourseDTOs?> GetByIdAsync(int id)
+        {
+            if (id <= 0) return null;
+
+            var result = await _repository.GetByIdAsync(id);
+            var entity = result.FirstOrDefault();
+
+            if (entity == null) return null;
+
+            return new CourseDTOs
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                Description = entity.Description,
+                Credits = entity.Credits,
+                TeacherId = entity.TeacherId,
+                SchoolTermId = entity.SchoolTermId
+            };
+        }
+
+        public async Task<IEnumerable<CourseDTOs>> GetByTeacherIdAsync(int teacherId)
+        {
+            if (teacherId <= 0) return Enumerable.Empty<CourseDTOs>();
+
+            var courses = await _repository.GetByTeacherIdAsync(teacherId);
+
+            return courses.Select(c => new CourseDTOs
             {
                 Id = c.Id,
                 Name = c.Name,
@@ -33,80 +66,51 @@ namespace DataFlowHub.Application.Services
             });
         }
 
-        //Listar curso por id
-        public async Task<IEnumerable<CourseDTOs>> GetById(int id)
+        public async Task<bool> CreateAsync(CourseDTOs dto)
         {
-            if (id > 0)
-                return Enumerable.Empty<CourseDTOs>();
+            // Validaciones básicas de integridad
+            if (dto.TeacherId <= 0 || dto.SchoolTermId <= 0) return false;
 
-            var lista = await _Repository.GetByIdAsync(id);
-
-            return lista.Select(c => new CourseDTOs
+            var entity = new Course
             {
-                Id = c.Id,
-                Name = c.Name,
-                Description = c.Description,
-                Credits = c.Credits,
-                TeacherId = c.TeacherId,
-                SchoolTermId = c.SchoolTermId
-            });
-        }
-
-        //Listar cursos asignados a un maestro
-        public async Task<IEnumerable<CourseDTOs>> GetByTeacherId(int teacherId)
-        {
-            if (teacherId > 0)
-                return Enumerable.Empty<CourseDTOs>();
-
-            var lista = await _Repository.GetByTeacherIdAsync(teacherId);
-
-            return lista.Select(c => new CourseDTOs
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Description = c.Description,
-                Credits = c.Credits,
-                TeacherId = c.TeacherId,
-                SchoolTermId = c.SchoolTermId
-            });
-        }
-
-        // Crear nuevo curso
-
-        public async Task Create(CourseDTOs courseDTOs)
-        {
-            var oCourse = new Course
-            {
-                Name = courseDTOs.Name,
-                Description = courseDTOs.Description,
-                Credits = courseDTOs.Credits,
-                TeacherId = courseDTOs.TeacherId,
-                SchoolTermId = courseDTOs.SchoolTermId
+                Name = dto.Name,
+                Description = dto.Description,
+                Credits = dto.Credits,
+                TeacherId = dto.TeacherId,
+                SchoolTermId = dto.SchoolTermId
             };
 
-            await _Repository.CreateAsync(oCourse);
+            await _repository.CreateAsync(entity);
+            return true;
         }
 
-        //Actualizar curso
-        public async Task Update(CourseDTOs courseDTOs)
+        public async Task<bool> UpdateAsync(CourseDTOs dto)
         {
-            var oCourse = new Course
+            // Validar existencia antes de actualizar (Soft Delete Check)
+            var existing = await _repository.GetByIdAsync(dto.Id);
+            if (existing == null || !existing.Any()) return false;
+
+            var entity = new Course
             {
-                Name = courseDTOs.Name,
-                Description = courseDTOs.Description,
-                Credits = courseDTOs.Credits,
-                TeacherId = courseDTOs.TeacherId,
-                SchoolTermId = courseDTOs.SchoolTermId
+                Id = dto.Id,
+                Name = dto.Name,
+                Description = dto.Description,
+                Credits = dto.Credits,
+                TeacherId = dto.TeacherId,
+                SchoolTermId = dto.SchoolTermId
             };
 
-            await _Repository.UpdateAsync(oCourse);
+            await _repository.UpdateAsync(entity);
+            return true;
         }
 
-
-        //Eliminar curso
-        public async Task Delete(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            await _Repository.DeleteAsync(id);
+            if (id <= 0) return false;
+
+            // El SP se encarga del UPDATE IsActive = 0
+            await _repository.DeleteAsync(id);
+            return true;
         }
     }
 }

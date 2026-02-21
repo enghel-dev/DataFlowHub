@@ -1,31 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DataFlowHub.Application.DTOs;
-using DataFlowHub.Application.Interfaces;
+﻿using DataFlowHub.Application.DTOs;
 using DataFlowHub.Domain.Entities;
+using DataFlowHub.Application.Interfaces;
 
 namespace DataFlowHub.Application.Services
 {
     public class TeacherService
     {
-        // 1. Inyección del Repositorio
-        private readonly ITeacherRepository _teacherRepository;
+        private readonly ITeacherRepository _repository;
 
-        public TeacherService(ITeacherRepository teacherRepository)
+        public TeacherService(ITeacherRepository repository)
         {
-            _teacherRepository = teacherRepository;
+            _repository = repository;
         }
-
-        // 2. Implementación de métodos mapeando a DTOs
 
         public async Task<IEnumerable<TeacherDTOs>> GetAllAsync()
         {
-            // Obtener entidades del repositorio
-            var teachers = await _teacherRepository.GetAllAsync();
-
-            // Mapear Entidad -> DTO
+            var teachers = await _repository.GetAllAsync();
             return teachers.Select(t => new TeacherDTOs
             {
                 Id = t.Id,
@@ -38,78 +28,69 @@ namespace DataFlowHub.Application.Services
             });
         }
 
-        public async Task<TeacherDTOs> GetByIdAsync(int id)
+        public async Task<TeacherDTOs?> GetByIdAsync(int id)
         {
-            var teacher = await _teacherRepository.GetByIdAsync(id);
-
-            if (teacher == null) return null;
+            if (id <= 0) return null;
+            var t = await _repository.GetByIdAsync(id);
+            if (t == null) return null;
 
             return new TeacherDTOs
             {
-                Id = teacher.Id,
-                EmployeeNumber = teacher.EmployeeNumber,
-                FirstName = teacher.FirstName,
-                LastName = teacher.LastName,
-                Email = teacher.Email,
-                Phone = teacher.Phone,
-                HireDate = teacher.HireDate
+                Id = t.Id,
+                EmployeeNumber = t.EmployeeNumber,
+                FirstName = t.FirstName,
+                LastName = t.LastName,
+                Email = t.Email,
+                Phone = t.Phone,
+                HireDate = t.HireDate
             };
         }
 
-        public async Task<TeacherDTOs> GetByEmployeeNumberAsync(string employeeNumber)
+        public async Task<bool> CreateAsync(TeacherDTOs dto)
         {
-            var teacher = await _teacherRepository.GetByEmployeeNumberAsync(employeeNumber);
+            // Validar unicidad de número de empleado
+            var existing = await _repository.GetByEmployeeNumberAsync(dto.EmployeeNumber);
+            if (existing != null) return false;
 
-            if (teacher == null) return null;
-
-            return new TeacherDTOs
+            var entity = new Teacher
             {
-                Id = teacher.Id,
-                EmployeeNumber = teacher.EmployeeNumber,
-                FirstName = teacher.FirstName,
-                LastName = teacher.LastName,
-                Email = teacher.Email,
-                Phone = teacher.Phone,
-                HireDate = teacher.HireDate
+                EmployeeNumber = dto.EmployeeNumber,
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                Email = dto.Email,
+                Phone = dto.Phone,
+                HireDate = dto.HireDate == default ? DateTime.Now : dto.HireDate
             };
+
+            await _repository.CreateAsync(entity);
+            return true;
         }
 
-        public async Task<int> CreateAsync(TeacherDTOs teacherDto)
+        public async Task<bool> UpdateAsync(TeacherDTOs dto)
         {
-           
-            var teacherEntity = new Teacher
+            var existing = await _repository.GetByIdAsync(dto.Id);
+            if (existing == null) return false;
+
+            var entity = new Teacher
             {
-                EmployeeNumber = teacherDto.EmployeeNumber,
-                FirstName = teacherDto.FirstName,
-                LastName = teacherDto.LastName,
-                Email = teacherDto.Email,
-                Phone = teacherDto.Phone,
-                HireDate = teacherDto.HireDate
+                Id = dto.Id,
+                EmployeeNumber = dto.EmployeeNumber,
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                Email = dto.Email,
+                Phone = dto.Phone,
+                HireDate = dto.HireDate
             };
 
-            return await _teacherRepository.CreateAsync(teacherEntity);
+            await _repository.UpdateAsync(entity);
+            return true;
         }
 
-        public async Task UpdateAsync(TeacherDTOs teacherDto)
+        public async Task<bool> DeleteAsync(int id)
         {
-            
-            var teacherEntity = new Teacher
-            {
-                Id = teacherDto.Id,
-                EmployeeNumber = teacherDto.EmployeeNumber,
-                FirstName = teacherDto.FirstName,
-                LastName = teacherDto.LastName,
-                Email = teacherDto.Email,
-                Phone = teacherDto.Phone,
-                HireDate = teacherDto.HireDate
-            };
-
-            await _teacherRepository.UpdateAsync(teacherEntity);
-        }
-
-        public async Task DeleteAsync(int id)
-        {
-            await _teacherRepository.DeleteAsync(id);
+            if (id <= 0) return false;
+            await _repository.DeleteAsync(id);
+            return true;
         }
     }
 }

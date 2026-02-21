@@ -1,71 +1,104 @@
 using DataFlowHub.Application.DTOs;
-using DataFlowHub.Application.Interfaces;
 using DataFlowHub.Domain.Entities;
+using DataFlowHub.Application.Interfaces;
 
 namespace DataFlowHub.Application.Services
 {
-    public class StudentServices
+    public class StudentService 
     {
         private readonly IStudentRepository _repository;
 
-        public StudentServices(IStudentRepository repository)
+        public StudentService(IStudentRepository repository)
         {
             _repository = repository;
         }
 
-        public async Task<IEnumerable<StudentDTO>> GetAll()
+        public async Task<IEnumerable<StudentDTOs>> GetAllAsync()
         {
-            var students = await _repository.GetAllAsync();
-
-            return students.Select(s => new StudentDTO
+            var entities = await _repository.GetAllAsync();
+            return entities.Select(s => new StudentDTOs
             {
                 Id = s.Id,
+                RegistrationNumber = s.RegistrationNumber,
                 FirstName = s.FirstName,
-                LastName = s.LastName
+                LastName = s.LastName,
+                Email = s.Email,
+                DateOfBirth = s.DateOfBirth,
+                Address = s.Address,
+                Phone = s.Phone,
+                MajorId = s.MajorId
             });
         }
 
-        public async Task<StudentDTO> GetById(int id)
+        public async Task<StudentDTOs?> GetByIdAsync(int id)
         {
-            var student = await _repository.GetByIdAsync(id);
+            if (id <= 0) return null;
+            var s = await _repository.GetByIdAsync(id);
+            if (s == null) return null;
 
-            if (student == null)
-                return null;
-
-            return new StudentDTO
+            return new StudentDTOs
             {
-                Id = student.Id,
-                FirstName = student.FirstName,
-                LastName = student.LastName
+                Id = s.Id,
+                RegistrationNumber = s.RegistrationNumber,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                Email = s.Email,
+                DateOfBirth = s.DateOfBirth,
+                Address = s.Address,
+                Phone = s.Phone,
+                MajorId = s.MajorId
             };
         }
 
-        public async Task Create(StudentDTO dto)
+        public async Task<bool> CreateAsync(StudentDTOs dto)
         {
-            var student = new Student
+            // Validar que el carnet no exista ya
+            var existing = await _repository.GetByRegistrationNumberAsync(dto.RegistrationNumber);
+            if (existing != null) return false;
+
+            var entity = new Student
             {
+                RegistrationNumber = dto.RegistrationNumber,
                 FirstName = dto.FirstName,
-                LastName = dto.LastName
+                LastName = dto.LastName,
+                Email = dto.Email,
+                DateOfBirth = dto.DateOfBirth,
+                Address = dto.Address,
+                Phone = dto.Phone,
+                MajorId = dto.MajorId
             };
 
-            await _repository.CreateAsync(student);
+            await _repository.CreateAsync(entity);
+            return true;
         }
 
-        public async Task Update(StudentDTO dto)
+        public async Task<bool> UpdateAsync(StudentDTOs dto)
         {
-            var student = new Student
+            var existing = await _repository.GetByIdAsync(dto.Id);
+            if (existing == null) return false;
+
+            var entity = new Student
             {
                 Id = dto.Id,
+                RegistrationNumber = dto.RegistrationNumber,
                 FirstName = dto.FirstName,
-                LastName = dto.LastName
+                LastName = dto.LastName,
+                Email = dto.Email,
+                DateOfBirth = dto.DateOfBirth,
+                Address = dto.Address,
+                Phone = dto.Phone,
+                MajorId = dto.MajorId
             };
 
-            await _repository.UpdateAsync(student);
+            await _repository.UpdateAsync(entity);
+            return true;
         }
 
-        public async Task Delete(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
+            if (id <= 0) return false;
             await _repository.DeleteAsync(id);
+            return true;
         }
     }
 }

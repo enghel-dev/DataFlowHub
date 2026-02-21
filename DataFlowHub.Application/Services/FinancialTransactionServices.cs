@@ -1,55 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DataFlowHub.Application.DTOs;
-using DataFlowHub.Application.Interfaces;
+﻿using DataFlowHub.Application.DTOs;
 using DataFlowHub.Domain.Entities;
+using DataFlowHub.Application.Interfaces;
 
 namespace DataFlowHub.Application.Services
 {
     public class FinancialTransactionService
     {
-        // 1. Inyección del Repositorio
-        private readonly IFinancialTransactionRepository _financialRepository;
+        private readonly IFinancialTransactionRepository _repository;
 
-        public FinancialTransactionService(IFinancialTransactionRepository financialRepository)
+        public FinancialTransactionService(IFinancialTransactionRepository repository)
         {
-            _financialRepository = financialRepository;
+            _repository = repository;
         }
-
-        // 2. Implementación de métodos
 
         public async Task<IEnumerable<FinancialTransactionDTOs>> GetByStudentIdAsync(int studentId)
         {
-            // Obtener transacciones del repositorio
-            var transactions = await _financialRepository.GetByStudentIdAsync(studentId);
+            if (studentId <= 0) return Enumerable.Empty<FinancialTransactionDTOs>();
 
-            // Mapear Entidad en DTO
+            // El SP debe filtrar por IsActive = 1 para no mostrar transacciones anuladas
+            var transactions = await _repository.GetByStudentIdAsync(studentId);
+
             return transactions.Select(t => new FinancialTransactionDTOs
             {
                 Id = t.Id,
                 TransactionDate = t.TransactionDate,
                 Amount = t.Amount,
-                TransactionType = t.TransactionType, // 1=Cargo, 2=Abono
+                TransactionType = t.TransactionType,
                 Description = t.Description,
                 StudentId = t.StudentId
             });
         }
 
-        public async Task<int> CreateAsync(FinancialTransactionDTOs transactionDto)
+        public async Task<bool> CreateAsync(FinancialTransactionDTOs dto)
         {
-            // Mapear DTO en Entidad para guardar
-            var transactionEntity = new FinancialTransaction
+            // Regla de negocio: No permitir montos cero o negativos
+            if (dto.Amount <= 0 || dto.StudentId <= 0) return false;
+
+            // Validar que el tipo de transacción sea válido (1 o 2)
+            if (dto.TransactionType != 1 && dto.TransactionType != 2) return false;
+
+            var entity = new FinancialTransaction
             {
-                TransactionDate = transactionDto.TransactionDate,
-                Amount = transactionDto.Amount,
-                TransactionType = transactionDto.TransactionType,
-                Description = transactionDto.Description,
-                StudentId = transactionDto.StudentId
+                TransactionDate = dto.TransactionDate == default ? DateTime.Now : dto.TransactionDate,
+                Amount = dto.Amount,
+                TransactionType = dto.TransactionType,
+                Description = dto.Description,
+                StudentId = dto.StudentId
             };
 
-            return await _financialRepository.CreateAsync(transactionEntity);
+            await _repository.CreateAsync(entity);
+            return true;
         }
     }
 }

@@ -6,25 +6,19 @@ namespace DataFlowHub.Application.Services
 {
     public class ScheduleService
     {
-        private readonly IScheduleRepository _scheduleRepository;
+        private readonly IScheduleRepository _repository;
 
-        public ScheduleService(IScheduleRepository scheduleRepository)
+        public ScheduleService(IScheduleRepository repository)
         {
-            _scheduleRepository = scheduleRepository;
+            _repository = repository;
         }
 
-        // Obtener horarios por ID de Curso
-        public async Task<IEnumerable<ScheduleDTOs>> GetByCourseId(int courseid)
+        public async Task<IEnumerable<ScheduleDTOs>> GetByCourseIdAsync(int courseId)
         {
-            // Validación: Si el ID es inválido, retornamos lista vacía
-            if(courseid <= 0)
-                return Enumerable.Empty<ScheduleDTOs>();
+            if (courseId <= 0) return Enumerable.Empty<ScheduleDTOs>();
 
-
-            var lista = await _scheduleRepository.GetByCourseIdAsync(courseid);
-
-            //Mapeamos la entidad a DTO
-            return lista.Select(s => new ScheduleDTOs
+            var schedules = await _repository.GetByCourseIdAsync(courseId);
+            return schedules.Select(s => new ScheduleDTOs
             {
                 Id = s.Id,
                 DayOfWeek = s.DayOfWeek,
@@ -33,49 +27,50 @@ namespace DataFlowHub.Application.Services
                 CourseId = s.CourseId,
                 ClassroomId = s.ClassroomId
             });
-           
         }
 
-        // Crear nuevo horario
-        public async Task Create(ScheduleDTOs scheduleDTOs)
+        public async Task<bool> CreateAsync(ScheduleDTOs dto)
         {
-            // Mapeamos de DTO -> Entidad (Para guardar en BD)
-            var oSchedule = new Schedule
+            // Validación de negocio: Horario coherente
+            if (dto.StartTime >= dto.EndTime) return false;
+            if (dto.CourseId <= 0 || dto.ClassroomId <= 0) return false;
+
+            var entity = new Schedule
             {
-                DayOfWeek = scheduleDTOs.DayOfWeek,
-                StartTime = scheduleDTOs.StartTime,
-                EndTime = scheduleDTOs.EndTime,
-                CourseId = scheduleDTOs.CourseId,
-                ClassroomId = scheduleDTOs.ClassroomId
+                DayOfWeek = dto.DayOfWeek,
+                StartTime = dto.StartTime,
+                EndTime = dto.EndTime,
+                CourseId = dto.CourseId,
+                ClassroomId = dto.ClassroomId
             };
 
-            await _scheduleRepository.CreateAsync(oSchedule);
+            await _repository.CreateAsync(entity);
+            return true;
         }
 
-        // Actualizar horario
-        public async Task Update(ScheduleDTOs scheduleDTOs)
+        public async Task<bool> UpdateAsync(ScheduleDTOs dto)
         {
-            var oSchedule = new Schedule
+            if (dto.Id <= 0 || dto.StartTime >= dto.EndTime) return false;
+
+            var entity = new Schedule
             {
-                Id = scheduleDTOs.Id,
-                DayOfWeek = scheduleDTOs.DayOfWeek,
-                StartTime = scheduleDTOs.StartTime,
-                EndTime = scheduleDTOs.EndTime,
-                CourseId = scheduleDTOs.CourseId,
-                ClassroomId = scheduleDTOs.ClassroomId
+                Id = dto.Id,
+                DayOfWeek = dto.DayOfWeek,
+                StartTime = dto.StartTime,
+                EndTime = dto.EndTime,
+                CourseId = dto.CourseId,
+                ClassroomId = dto.ClassroomId
             };
 
-            await _scheduleRepository.UpdateAsync(oSchedule);
+            await _repository.UpdateAsync(entity);
+            return true;
         }
 
-        // Eliminar horario
-        public async Task Delete(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            if (id > 0) // Solo intentamos borrar si el ID es válido
-            {
-                await _scheduleRepository.DeleteAsync(id);
-            }
+            if (id <= 0) return false;
+            await _repository.DeleteAsync(id);
+            return true;
         }
-
     }
 }

@@ -1,31 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DataFlowHub.Application.DTOs;
-using DataFlowHub.Application.Interfaces;
+﻿using DataFlowHub.Application.DTOs;
 using DataFlowHub.Domain.Entities;
+using DataFlowHub.Application.Interfaces;
 
 namespace DataFlowHub.Application.Services
 {
-    public class MajorService
+    public class MajorService 
     {
-        // 1. Inyección del Repositorio
-        private readonly IMajorRepository _majorRepository;
+        private readonly IMajorRepository _repository;
 
-        public MajorService(IMajorRepository majorRepository)
+        public MajorService(IMajorRepository repository)
         {
-            _majorRepository = majorRepository;
+            _repository = repository;
         }
-
-        // 2. Implementación de métodos
 
         public async Task<IEnumerable<MajorDTOs>> GetAllAsync()
         {
-            // Obtener entidades
-            var majors = await _majorRepository.GetAllAsync();
-
-            // Mapear Entidad -> DTO
+            var majors = await _repository.GetAllAsync();
             return majors.Select(m => new MajorDTOs
             {
                 Id = m.Id,
@@ -34,48 +24,58 @@ namespace DataFlowHub.Application.Services
             });
         }
 
-        public async Task<MajorDTOs> GetByIdAsync(int id)
+        public async Task<MajorDTOs?> GetByIdAsync(int id)
         {
-            var major = await _majorRepository.GetByIdAsync(id);
+            if (id <= 0) return null;
 
-            if (major == null) return null;
+            var entity = await _repository.GetByIdAsync(id);
+            if (entity == null) return null;
 
             return new MajorDTOs
             {
-                Id = major.Id,
-                Name = major.Name,
-                Code = major.Code
+                Id = entity.Id,
+                Name = entity.Name,
+                Code = entity.Code
             };
         }
 
-        public async Task<int> CreateAsync(MajorDTOs majorDto)
+        public async Task<bool> CreateAsync(MajorDTOs dto)
         {
-            // Convertir DTO en Entidad para guardar en BD
-            var majorEntity = new Major
+            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Code))
+                return false;
+
+            var entity = new Major
             {
-                Name = majorDto.Name,
-                Code = majorDto.Code
+                Name = dto.Name,
+                Code = dto.Code.ToUpper() // Estandarizamos el código
             };
 
-            return await _majorRepository.CreateAsync(majorEntity);
+            await _repository.CreateAsync(entity);
+            return true;
         }
 
-        public async Task UpdateAsync(MajorDTOs majorDto)
+        public async Task<bool> UpdateAsync(MajorDTOs dto)
         {
-            // Convertir DTO en Entidad para actualizar
-            var majorEntity = new Major
+            // Verificamos si existe antes de intentar actualizar
+            var existing = await _repository.GetByIdAsync(dto.Id);
+            if (existing == null) return false;
+
+            var entity = new Major
             {
-                Id = majorDto.Id,
-                Name = majorDto.Name,
-                Code = majorDto.Code
+                Id = dto.Id,
+                Name = dto.Name,
+                Code = dto.Code.ToUpper()
             };
 
-            await _majorRepository.UpdateAsync(majorEntity);
+            await _repository.UpdateAsync(entity);
+            return true;
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            await _majorRepository.DeleteAsync(id);
+            if (id <= 0) return false;
+            await _repository.DeleteAsync(id);
+            return true;
         }
     }
 }
