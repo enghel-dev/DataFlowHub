@@ -3,127 +3,106 @@ using DataFlowHub.Application.Interfaces;
 using DataFlowHub.Infrastructure.DataBase;
 using Microsoft.Data.SqlClient;
 using System.Data;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography.Pkcs;
 
 namespace DataFlowHub.Infrastructure.Repository
 {
-    public class ClassrooomRepository : IClassroomRepository
+    public class ClassroomRepository : IClassroomRepository
     {
-        //Inyeccion de dependencias
         private readonly DBconnectionFactory _dbconnectionFactory;
-        public ClassrooomRepository(DBconnectionFactory dbconnectionFactory)
+
+        public ClassroomRepository(DBconnectionFactory dbconnectionFactory)
         {
             _dbconnectionFactory = dbconnectionFactory;
         }
 
-        //Crear salon
-        public async Task CreateAsync(Classroom classroom)
-        {
-            using var con =  _dbconnectionFactory.CreateConection();
-            await con.OpenAsync();
-
-            using (SqlCommand cmd = new SqlCommand("Scheduling.sp_CreateClassroom", con))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add(new SqlParameter("@Name", classroom.Name));
-                cmd.Parameters.Add(new SqlParameter("@Location", classroom.Location));
-                cmd.Parameters.Add(new SqlParameter("@Capacity", classroom.Capacity));
-
-                await cmd.ExecuteNonQueryAsync();
-
-            }
-        }
-        //Borrar salon
-        public async Task DeleteAsync(int id)
-        {
-            using var con = _dbconnectionFactory.CreateConection();
-            await con.OpenAsync();
-
-            using (SqlCommand cmd = new SqlCommand("Scheduling.sp_DeleteClassroom", con))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                cmd.Parameters.Add(new SqlParameter("@Id", id));
-                await cmd.ExecuteNonQueryAsync();
-
-            }
-        }
-
-        //Listar salones
         public async Task<IEnumerable<Classroom>> GetAllAsync()
         {
-            var olist = new List<Classroom>();
+            var classrooms = new List<Classroom>();
             using var con = _dbconnectionFactory.CreateConection();
-
             await con.OpenAsync();
 
-            using (SqlCommand cmd = new SqlCommand("Scheduling.sp_GetAllClassrooms", con))
+            using var cmd = new SqlCommand("Scheduling.usp_Classrooms_GetAll", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            using var dr = await cmd.ExecuteReaderAsync();
+            while (await dr.ReadAsync())
             {
-                cmd.CommandType = CommandType.StoredProcedure;
-                using (SqlDataReader dr = await cmd.ExecuteReaderAsync())
-                {
-                    while (await dr.ReadAsync())
-                    {
-                        olist.Add(new Classroom
-                        {
-                            Id = Convert.ToInt32(dr["Id"]),
-                            Name = dr["Name"].ToString(),
-                            Location = dr["Location"].ToString(),
-                            Capacity = Convert.ToInt32(dr["Capacity"])
-                        });   
-                    }
-                }
+                classrooms.Add(MapToEntity(dr));
             }
-            return olist;
+            return classrooms;
         }
-        // Obtener salon por id
+
         public async Task<IEnumerable<Classroom>> GetByIdAsync(int id)
         {
-            var olist = new List<Classroom>();
+            var classrooms = new List<Classroom>();
             using var con = _dbconnectionFactory.CreateConection();
-
             await con.OpenAsync();
 
-            using (SqlCommand cmd = new SqlCommand("Scheduling.sp_GetClassroomById", con))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
+            using var cmd = new SqlCommand("Scheduling.usp_Classrooms_GetById", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = id });
 
-                cmd.Parameters.Add(new SqlParameter("@id", id));
-                using (SqlDataReader dr = await cmd.ExecuteReaderAsync())
-                {
-                    while (await dr.ReadAsync())
-                    {
-                        olist.Add(new Classroom
-                        {
-                            Id = Convert.ToInt32(dr["Id"]),
-                            Name = dr["Name"].ToString(),
-                            Location = dr["Location"].ToString(),
-                            Capacity = Convert.ToInt32(dr["Capacity"])
-                        });
-                    }
-                }
+            using var dr = await cmd.ExecuteReaderAsync();
+            while (await dr.ReadAsync())
+            {
+                classrooms.Add(MapToEntity(dr));
             }
-            return olist;
+            return classrooms;
         }
-        //Actualizar info del salón
+
+        public async Task CreateAsync(Classroom classroom)
+        {
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Scheduling.usp_Classrooms_Create", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.Add(new SqlParameter("@Name", SqlDbType.NVarChar, 50) { Value = classroom.Name });
+            cmd.Parameters.Add(new SqlParameter("@Location", SqlDbType.NVarChar, 50) { Value = classroom.Location });
+            cmd.Parameters.Add(new SqlParameter("@Capacity", SqlDbType.Int) { Value = classroom.Capacity });
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
         public async Task UpdateAsync(Classroom classroom)
         {
             using var con = _dbconnectionFactory.CreateConection();
             await con.OpenAsync();
 
-            using (SqlCommand cmd = new SqlCommand("Scheduling.sp_UpdateClassroom", con))
+            using var cmd = new SqlCommand("Scheduling.usp_Classrooms_Update", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = classroom.Id });
+            cmd.Parameters.Add(new SqlParameter("@Name", SqlDbType.NVarChar, 50) { Value = classroom.Name });
+            cmd.Parameters.Add(new SqlParameter("@Location", SqlDbType.NVarChar, 50) { Value = classroom.Location });
+            cmd.Parameters.Add(new SqlParameter("@Capacity", SqlDbType.Int) { Value = classroom.Capacity });
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Scheduling.usp_Classrooms_Delete", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = id });
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // Helper de mapeo para mantener el código DRY (Don't Repeat Yourself)
+        private static Classroom MapToEntity(SqlDataReader dr)
+        {
+            return new Classroom
             {
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                cmd.Parameters.Add(new SqlParameter("@Id", classroom.Id));
-                cmd.Parameters.Add(new SqlParameter("@Name", classroom.Name));
-                cmd.Parameters.Add(new SqlParameter("@Location", classroom.Location));
-                cmd.Parameters.Add(new SqlParameter("@Capacity", classroom.Capacity));
-
-                await cmd.ExecuteNonQueryAsync();
-
-            }
+                Id = dr.GetInt32(dr.GetOrdinal("Id")),
+                Name = dr.GetString(dr.GetOrdinal("Name")),
+                Location = dr.GetString(dr.GetOrdinal("Location")),
+                Capacity = dr.GetInt32(dr.GetOrdinal("Capacity"))
+            };
         }
     }
 }

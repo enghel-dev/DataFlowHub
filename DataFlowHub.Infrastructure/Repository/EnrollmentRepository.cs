@@ -1,44 +1,108 @@
-﻿using DataFlowHub.Application.Interfaces;
-using DataFlowHub.Domain.Entities;
+﻿using DataFlowHub.Domain.Entities;
+using DataFlowHub.Application.Interfaces;
 using DataFlowHub.Infrastructure.DataBase;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace DataFlowHub.Infrastructure.Repository
 {
     public class EnrollmentRepository : IEnrollmentRepository
     {
-        private readonly DBconnectionFactory _dBconnectionFactory;
+        private readonly DBconnectionFactory _dbconnectionFactory;
 
-        public EnrollmentRepository(DBconnectionFactory dBconnectionFactory)
+        public EnrollmentRepository(DBconnectionFactory dbconnectionFactory)
         {
-            _dBconnectionFactory = dBconnectionFactory;
+            _dbconnectionFactory = dbconnectionFactory;
         }
-        // Matricular estudiante en una clase
-        public Task<int> CreateAsync(Enrollment enrollment)
+
+        public async Task<IEnumerable<Enrollment>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            var list = new List<Enrollment>();
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Enrollment.usp_Enrollments_GetAll", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            using var dr = await cmd.ExecuteReaderAsync();
+            while (await dr.ReadAsync())
+            {
+                list.Add(MapToEntity(dr));
+            }
+            return list;
         }
-        // Eliminar matrícula
-        public Task DeleteAsync(int id)
+
+        public async Task<IEnumerable<Enrollment>> GetByStudentIdAsync(int studentId)
         {
-            throw new NotImplementedException();
+            var list = new List<Enrollment>();
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Enrollment.usp_Enrollments_GetByStudentId", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(new SqlParameter("@StudentId", SqlDbType.Int) { Value = studentId });
+
+            using var dr = await cmd.ExecuteReaderAsync();
+            while (await dr.ReadAsync())
+            {
+                list.Add(MapToEntity(dr));
+            }
+            return list;
         }
-        // Listar todas las matrículas
-        public Task<IEnumerable<Enrollment>> GetAllAsync()
+
+        public async Task CreateAsync(Enrollment enrollment)
         {
-            throw new NotImplementedException();
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Enrollment.usp_Enrollments_Create", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            // Usamos DateTime2 para coincidir con el SP
+            cmd.Parameters.Add(new SqlParameter("@EnrollmentDate", SqlDbType.DateTime2) { Value = enrollment.EnrollmentDate });
+            cmd.Parameters.Add(new SqlParameter("@Status", SqlDbType.NVarChar, 20) { Value = enrollment.Status });
+            cmd.Parameters.Add(new SqlParameter("@StudentId", SqlDbType.Int) { Value = enrollment.StudentId });
+            cmd.Parameters.Add(new SqlParameter("@CourseId", SqlDbType.Int) { Value = enrollment.CourseId });
+
+            await cmd.ExecuteNonQueryAsync();
         }
-        // Ver historial de clases de un estudiante
-        public Task<IEnumerable<Enrollment>> GetByStudentIdAsync(int studentId)
+
+        public async Task UpdateStatusAsync(int id, string status)
         {
-            throw new NotImplementedException();
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Enrollment.usp_Enrollments_UpdateStatus", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = id });
+            cmd.Parameters.Add(new SqlParameter("@Status", SqlDbType.NVarChar, 20) { Value = status });
+
+            await cmd.ExecuteNonQueryAsync();
         }
-        // Actualizar estado (ej: Retirada, Aprobada)
-        public Task UpdateStatusAsync(int id, string status)
+
+        public async Task DeleteAsync(int id)
         {
-            throw new NotImplementedException();
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Enrollment.usp_Enrollments_Delete", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = id });
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        private static Enrollment MapToEntity(SqlDataReader dr)
+        {
+            return new Enrollment
+            {
+                Id = dr.GetInt32(dr.GetOrdinal("Id")),
+                EnrollmentDate = dr.GetDateTime(dr.GetOrdinal("EnrollmentDate")),
+                Status = dr.GetString(dr.GetOrdinal("Status")),
+                StudentId = dr.GetInt32(dr.GetOrdinal("StudentId")),
+                CourseId = dr.GetInt32(dr.GetOrdinal("CourseId"))
+            };
         }
     }
 }

@@ -1,39 +1,93 @@
-﻿using DataFlowHub.Application.Interfaces;
-using DataFlowHub.Domain.Entities;
+﻿using DataFlowHub.Domain.Entities;
+using DataFlowHub.Application.Interfaces;
 using DataFlowHub.Infrastructure.DataBase;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace DataFlowHub.Infrastructure.Repository
 {
     public class GradeRepository : IGradeRepository
     {
-        private readonly DBconnectionFactory _dbConnectionFactory;
+        private readonly DBconnectionFactory _dbconnectionFactory;
 
-        public GradeRepository(DBconnectionFactory dbConnectionFactory)
+        public GradeRepository(DBconnectionFactory dbconnectionFactory)
         {
-            _dbConnectionFactory = dbConnectionFactory;
+            _dbconnectionFactory = dbconnectionFactory;
         }
-        // Ingresar una nota
-        public Task<int> CreateAsync(Grade grade)
+
+        public async Task<IEnumerable<Grade>> GetByEnrollmentIdAsync(int enrollmentId)
         {
-            throw new NotImplementedException();
+            var grades = new List<Grade>();
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Evaluation.usp_Grades_GetByEnrollmentId", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(new SqlParameter("@EnrollmentId", SqlDbType.Int) { Value = enrollmentId });
+
+            using var dr = await cmd.ExecuteReaderAsync();
+            while (await dr.ReadAsync())
+            {
+                grades.Add(MapToEntity(dr));
+            }
+            return grades;
         }
-        // Eliminar una nota
-        public Task DeleteAsync(int id)
+
+        public async Task CreateAsync(Grade grade)
         {
-            throw new NotImplementedException();
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Evaluation.usp_Grades_Create", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.Add(new SqlParameter("@Name", SqlDbType.NVarChar, 50) { Value = grade.Name });
+            cmd.Parameters.Add(new SqlParameter("@Value", SqlDbType.Decimal) { Precision = 5, Scale = 2, Value = grade.Value });
+            cmd.Parameters.Add(new SqlParameter("@EvaluationDate", SqlDbType.DateTime2) { Value = grade.EvaluationDate });
+            cmd.Parameters.Add(new SqlParameter("@EnrollmentId", SqlDbType.Int) { Value = grade.EnrollmentId });
+
+            await cmd.ExecuteNonQueryAsync();
         }
-        // Ver notas de una matrícula específica
-        public Task<IEnumerable<Grade>> GetByEnrollmentIdAsync(int enrollmentId)
+
+        public async Task UpdateAsync(Grade grade)
         {
-            throw new NotImplementedException();
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Evaluation.usp_Grades_Update", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = grade.Id });
+            cmd.Parameters.Add(new SqlParameter("@Name", SqlDbType.NVarChar, 50) { Value = grade.Name });
+            cmd.Parameters.Add(new SqlParameter("@Value", SqlDbType.Decimal) { Precision = 5, Scale = 2, Value = grade.Value });
+            cmd.Parameters.Add(new SqlParameter("@EvaluationDate", SqlDbType.DateTime2) { Value = grade.EvaluationDate });
+            cmd.Parameters.Add(new SqlParameter("@EnrollmentId", SqlDbType.Int) { Value = grade.EnrollmentId });
+
+            await cmd.ExecuteNonQueryAsync();
         }
-        // Modificar una nota
-        public Task UpdateAsync(Grade grade)
+
+        public async Task DeleteAsync(int id)
         {
-            throw new NotImplementedException();
+            using var con = _dbconnectionFactory.CreateConection();
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand("Evaluation.usp_Grades_Delete", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = id });
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        private static Grade MapToEntity(SqlDataReader dr)
+        {
+            return new Grade
+            {
+                Id = dr.GetInt32(dr.GetOrdinal("Id")),
+                Name = dr.GetString(dr.GetOrdinal("Name")),
+                Value = dr.GetDecimal(dr.GetOrdinal("Value")),
+                EvaluationDate = dr.GetDateTime(dr.GetOrdinal("EvaluationDate")),
+                EnrollmentId = dr.GetInt32(dr.GetOrdinal("EnrollmentId"))
+            };
         }
     }
 }

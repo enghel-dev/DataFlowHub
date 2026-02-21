@@ -1,9 +1,11 @@
 using DataFlowHub.Application.Interfaces;
 using DataFlowHub.Application.Services;
 using DataFlowHub.Infrastructure;
+using DataFlowHub.Application;
 using DataFlowHub.Infrastructure.DataBase;
 using DataFlowHub.Infrastructure.Repository;
 using System.Data.Common;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,8 +20,11 @@ var ConectionString = builder.Configuration.GetConnectionString("default");
 builder.Services.AddSingleton(new DBconnectionFactory(ConectionString!));
 
 //Inyeccion de dependencias
-builder.Services.AddScoped<IClassroomRepository, ClassrooomRepository>();
-builder.Services.AddScoped<ClassroomServices>();
+// --- Registro de Capas (Limpio y Profesional) ---
+builder.Services.AddInfrastructure();
+builder.Services.AddApplication();
+
+builder.Services.AddControllers();
 //
 
 
